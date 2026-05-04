@@ -1,5 +1,6 @@
-//essa classe possui o modelo de mensagem com seus atributos 
+package models;
 
+//essa classe possui o modelo de mensagem com seus atributos 
 
 public class Message {
     private int id;

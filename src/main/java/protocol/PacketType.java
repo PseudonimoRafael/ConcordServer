@@ -1,4 +1,4 @@
-
+package protocol;
 //Essa classe vai listar os tipos de pacotes que são aceitos no sistema
 
 public enum PacketType{

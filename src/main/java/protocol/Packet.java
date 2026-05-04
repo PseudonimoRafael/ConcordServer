@@ -1,4 +1,4 @@
-
+package protocol;
 //Essa classe vai fazer a conversão do pacote para bytes
 
 
