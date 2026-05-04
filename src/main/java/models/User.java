@@ -5,7 +5,7 @@ package models;
 
 public class User {
     private String nickname;
-    private Sting name;
+    private String name;
     private String email;
     private String password;
     private String lastSeen;
@@ -29,11 +29,11 @@ public class User {
         this.nickname = nickname;
     }
 
-    public Sting getName() {
+    public String getName() {
         return name;
     }
 
-    public void setName(Sting name) {
+    public void setName(String name) {
         this.name = name;
     }
 
