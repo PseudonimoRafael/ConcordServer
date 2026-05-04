@@ -3,12 +3,13 @@ package protocol;
 
 
 import java.io.Serializable;
+import java.util.List;
 
 public class Packet implements Serializable{
     //manter a versão de serialização do cliente e srevidor igual
     private static final long serialVersionUID = 1;
-    
-    
+
+    private List<String> messageList;
     private PacketType type;
     private String sender;
     private String receiver;
@@ -17,6 +18,14 @@ public class Packet implements Serializable{
 
     // type = tipo de operação do pacote, sender = remetente, receiver = destinatario
     //content = texto enviado, timestamp = data
+    
+    
+    public List<String> getMessageList(){
+        return messageList;
+    }
+    public void setMessageList(List<String> messageList){
+        this.messageList = messageList;
+    }
 
     public Packet(PacketType type){
         this.type = type;

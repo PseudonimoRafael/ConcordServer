@@ -7,7 +7,9 @@ public enum PacketType{
     // Autenticação e pedidos/respostas do servidor para o usuario
     MESSAGE,
     CONTACT_LIST, STATUS_UPDATE,
-    TYPING_START, TYPING_STOP
+    TYPING_START, TYPING_STOP,
     //digitando
+    USER_NOT_FOUND, AUTH_ERROR, USER_ALREADY_EXISTS,
+    MESSAGE_BATCH
 
 }
