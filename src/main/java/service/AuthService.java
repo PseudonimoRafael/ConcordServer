@@ -1,4 +1,5 @@
 package service;
+//Essa classe vai autenticar, registrar e buscar usuarios cadastrados no servidor
 
 import models.User;
 import repository.UserRepository;
