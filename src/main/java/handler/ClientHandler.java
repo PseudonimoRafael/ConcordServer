@@ -1,10 +1,12 @@
 package handler;
-// Atende cada cliente em uma thread separada, lendo e enviando pacotes em formato JSON
+// Atende cada cliente em uma thread separada, processa pacotes de login, registro e logout em JSON
 
 import com.google.gson.Gson;
+import models.User;
 import protocol.Packet;
 import protocol.PacketType;
 import server.Server;
+import service.AuthService;
 
 import java.io.*;
 import java.net.Socket;
@@ -16,9 +18,11 @@ public class ClientHandler implements Runnable {
     private BufferedReader entrada;
     private String nickNameCliente;
     private Gson gson = new Gson();
+    private AuthService authService;
 
-    public ClientHandler(Socket socket) {
+    public ClientHandler(Socket socket, AuthService authService) {
         this.socket = socket;
+        this.authService = authService;
     }
 
     public void logout() {
@@ -43,16 +47,50 @@ public class ClientHandler implements Runnable {
             while ((json = entrada.readLine()) != null) {
                 Packet pacote = gson.fromJson(json, Packet.class);
                 System.out.println("Pacote recebido: " + pacote.getType());
-
-                if (pacote.getType() == PacketType.LOGOUT) {
-                    logout();
-                    break;
-                }
+                processarPacote(pacote);
             }
         } catch (IOException e) {
             System.out.println("Cliente desconectado: " + nickNameCliente);
         } finally {
             logout();
+        }
+    }
+
+    private void processarPacote(Packet pacote) {
+        switch (pacote.getType()) {
+            case REGISTER:
+                processarRegistro(pacote);
+                break;
+            case LOGIN:
+                processarLogin(pacote);
+                break;
+            case LOGOUT:
+                logout();
+                break;
+            default:
+                System.out.println("Pacote desconhecido: " + pacote.getType());
+        }
+    }
+
+    private void processarRegistro(Packet pacote) {
+        User novoUser = new User(pacote.getSender(), pacote.getSender(), "", pacote.getContent());
+        boolean sucesso = authService.registrar(novoUser);
+        if (sucesso) {
+            enviar(new Packet(PacketType.REGISTER_OK));
+        } else {
+            enviar(new Packet(PacketType.REGISTER_FAIL));
+        }
+    }
+
+    private void processarLogin(Packet pacote) {
+        User user = authService.autenticar(pacote.getSender(), pacote.getContent());
+        if (user != null) {
+            nickNameCliente = pacote.getSender();
+            Server.clientesOnline.put(nickNameCliente, this);
+            System.out.println(nickNameCliente + " está online.");
+            enviar(new Packet(PacketType.LOGIN_OK));
+        } else {
+            enviar(new Packet(PacketType.LOGIN_FAIL));
         }
     }
 
