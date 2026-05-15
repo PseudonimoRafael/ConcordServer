@@ -3,8 +3,10 @@ package server;
 
 import database.DatabaseManager;
 import handler.ClientHandler;
+import repository.MessageRepository;
 import repository.UserRepository;
 import service.AuthService;
+import service.PresenceService;
 
 import java.io.IOException;
 import java.net.ServerSocket;
@@ -12,10 +14,8 @@ import java.net.Socket;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-import service.PresenceService;
-
 public class Server {
-
+    
     private static final int PORTA = 8080;
     public static Map<String, ClientHandler> clientesOnline = new ConcurrentHashMap<>();
 
@@ -24,6 +24,7 @@ public class Server {
         dbManager.conectar();
 
         UserRepository userRepository = new UserRepository(dbManager);
+        MessageRepository messageRepository = new MessageRepository(dbManager); // NOVO
         AuthService authService = new AuthService(userRepository);
         PresenceService presenceService = new PresenceService(userRepository);
         
@@ -34,7 +35,8 @@ public class Server {
             while (true) {
                 Socket socketCliente = serverSocket.accept();
                 System.out.println("Cliente conectado: " + socketCliente.getInetAddress());
-                ClientHandler handler = new ClientHandler(socketCliente, authService, presenceService);
+                // Passando o messageRepository
+                ClientHandler handler = new ClientHandler(socketCliente, authService, presenceService, messageRepository);
                 new Thread(handler).start();
             }
         } catch (IOException e) {
