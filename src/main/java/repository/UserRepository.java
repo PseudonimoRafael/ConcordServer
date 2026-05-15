@@ -4,6 +4,8 @@ package repository;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
 
 import database.DatabaseManager;
 import models.User;
@@ -51,5 +53,19 @@ public class UserRepository {
                 System.out.println("erro ao buscar usuario:" + e.getMessage());
                 return null;
             }
+        }
+        public List<String> buscarTodos() {
+            List<String> nicknames = new ArrayList<>();
+            String sql = "SELECT nickname FROM users";
+            try {
+                PreparedStatement stmt = dbmanager.getConnection().prepareStatement(sql);
+                ResultSet rs = stmt.executeQuery();
+                while (rs.next()) {
+                    nicknames.add(rs.getString("nickname"));
+                }
+                } catch (SQLException e) {
+                    System.out.println("Erro ao buscar contatos: " + e.getMessage());
+                }
+                return nicknames;
         }   
 }

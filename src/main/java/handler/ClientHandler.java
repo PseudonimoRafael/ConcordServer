@@ -7,6 +7,7 @@ import protocol.Packet;
 import protocol.PacketType;
 import server.Server;
 import service.AuthService;
+import service.PresenceService;
 
 import java.io.*;
 import java.net.Socket;
@@ -19,10 +20,12 @@ public class ClientHandler implements Runnable {
     private String nickNameCliente;
     private Gson gson = new Gson();
     private AuthService authService;
+    private PresenceService presenceService;
 
-    public ClientHandler(Socket socket, AuthService authService) {
+    public ClientHandler(Socket socket, AuthService authService, PresenceService presenceService) {
         this.socket = socket;
         this.authService = authService;
+        this.presenceService = presenceService;
     }
 
     public void logout() {
@@ -31,6 +34,9 @@ public class ClientHandler implements Runnable {
             System.out.println(nickNameCliente + " saiu do servidor.");
         }
         try {
+            if (nickNameCliente != null) {
+                presenceService.usuarioDesconectou(nickNameCliente);
+            }
             socket.close();
         } catch (IOException e) {
             System.out.println("erro ao fechar socket" + e.getMessage());
@@ -89,6 +95,7 @@ public class ClientHandler implements Runnable {
             Server.clientesOnline.put(nickNameCliente, this);
             System.out.println(nickNameCliente + " está online.");
             enviar(new Packet(PacketType.LOGIN_OK));
+            presenceService.usuarioConectou(nickNameCliente, this);
         } else {
             enviar(new Packet(PacketType.LOGIN_FAIL));
         }
