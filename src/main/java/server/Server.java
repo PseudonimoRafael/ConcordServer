@@ -4,12 +4,16 @@ package server;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 import handler.ClientHandler;
 
 
 public class Server {
     private static final int PORTA = 8080;
+
+    public static Map<String, ClientHandler> clientesOnline = new ConcurrentHashMap<>();
     public void iniciar(){
         System.out.println("servidor aberto na porta: " + PORTA);
         try{
