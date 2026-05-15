@@ -1,27 +1,28 @@
 package service;
-// Gerencia o status online/offline dos usuários e notifica os clientes conectados
-
-import com.google.gson.Gson;
-import handler.ClientHandler;
-import protocol.Packet;
-import protocol.PacketType;
-import repository.UserRepository;
-import server.Server;
+// Gerencia o status online/offline dos usuários, notifica clientes e entrega mensagens offline
 
 import java.util.ArrayList;
 import java.util.List;
 
+import handler.ClientHandler;
+import models.Message;
+import protocol.Packet;
+import protocol.PacketType;
+import repository.MessageRepository;
+import repository.UserRepository;
+import server.Server;
+
 public class PresenceService {
 
     private UserRepository userRepository;
-    private Gson gson = new Gson();
 
     public PresenceService(UserRepository userRepository) {
         this.userRepository = userRepository;
     }
 
-    public void usuarioConectou(String nickname, ClientHandler handler) {
+    public void usuarioConectou(String nickname, ClientHandler handler, MessageRepository messageRepository) {
         notificarTodos(nickname, "online", handler);
+        entregarMensagensOffline(nickname, handler, messageRepository);
         enviarListaContatos(handler);
     }
 
@@ -39,6 +40,22 @@ public class PresenceService {
                 handler.enviar(pacote);
             }
         }
+    }
+
+    private void entregarMensagensOffline(String nickname, ClientHandler handler, MessageRepository messageRepository) {
+        List<Message> pendentes = messageRepository.buscarPendentes(nickname);
+        if (pendentes.isEmpty()) return;
+
+        for (Message msg : pendentes) {
+            Packet pacote = new Packet(PacketType.MESSAGE);
+            pacote.setSender(msg.getSender());
+            pacote.setReceiver(msg.getReceiver());
+            pacote.setContent(msg.getContent());
+            handler.enviar(pacote);
+        }
+
+        messageRepository.deletarEntregues(nickname);
+        System.out.println(pendentes.size() + " mensagens offline entregues para: " + nickname);
     }
 
     private void enviarListaContatos(ClientHandler handler) {
