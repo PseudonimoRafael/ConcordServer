@@ -12,6 +12,8 @@ import java.net.Socket;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import service.PresenceService;
+
 public class Server {
 
     private static final int PORTA = 8080;
@@ -23,7 +25,8 @@ public class Server {
 
         UserRepository userRepository = new UserRepository(dbManager);
         AuthService authService = new AuthService(userRepository);
-
+        PresenceService presenceService = new PresenceService(userRepository);
+        
         System.out.println("Servidor iniciado na porta " + PORTA);
 
         try {
@@ -31,7 +34,7 @@ public class Server {
             while (true) {
                 Socket socketCliente = serverSocket.accept();
                 System.out.println("Cliente conectado: " + socketCliente.getInetAddress());
-                ClientHandler handler = new ClientHandler(socketCliente, authService);
+                ClientHandler handler = new ClientHandler(socketCliente, authService, presenceService);
                 new Thread(handler).start();
             }
         } catch (IOException e) {

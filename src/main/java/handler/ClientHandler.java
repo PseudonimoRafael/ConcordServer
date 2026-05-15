@@ -2,9 +2,11 @@ package handler;
 // Atende cada cliente em uma thread separada, processa pacotes de login, registro e logout em JSON
 
 import com.google.gson.Gson;
+import models.Message;
 import models.User;
 import protocol.Packet;
 import protocol.PacketType;
+import repository.MessageRepository;
 import server.Server;
 import service.AuthService;
 import service.PresenceService;
@@ -13,34 +15,30 @@ import java.io.*;
 import java.net.Socket;
 
 public class ClientHandler implements Runnable {
-
     private Socket socket;
     private PrintWriter saida;
     private BufferedReader entrada;
     private String nickNameCliente;
     private Gson gson = new Gson();
+    
     private AuthService authService;
     private PresenceService presenceService;
+    private MessageRepository messageRepository;
 
-    public ClientHandler(Socket socket, AuthService authService, PresenceService presenceService) {
+    public ClientHandler(Socket socket, AuthService authService, PresenceService presenceService, MessageRepository messageRepository) {
         this.socket = socket;
         this.authService = authService;
         this.presenceService = presenceService;
+        this.messageRepository = messageRepository;
     }
 
     public void logout() {
         if (nickNameCliente != null) {
             Server.clientesOnline.remove(nickNameCliente);
+            presenceService.usuarioDesconectou(nickNameCliente);
             System.out.println(nickNameCliente + " saiu do servidor.");
         }
-        try {
-            if (nickNameCliente != null) {
-                presenceService.usuarioDesconectou(nickNameCliente);
-            }
-            socket.close();
-        } catch (IOException e) {
-            System.out.println("erro ao fechar socket" + e.getMessage());
-        }
+        try { socket.close(); } catch (IOException e) {}
     }
 
     @Override
@@ -52,11 +50,10 @@ public class ClientHandler implements Runnable {
             String json;
             while ((json = entrada.readLine()) != null) {
                 Packet pacote = gson.fromJson(json, Packet.class);
-                System.out.println("Pacote recebido: " + pacote.getType());
                 processarPacote(pacote);
             }
         } catch (IOException e) {
-            System.out.println("Cliente desconectado: " + nickNameCliente);
+            System.out.println("Cliente desconectado ou erro: " + nickNameCliente);
         } finally {
             logout();
         }
@@ -64,24 +61,31 @@ public class ClientHandler implements Runnable {
 
     private void processarPacote(Packet pacote) {
         switch (pacote.getType()) {
-            case REGISTER:
-                processarRegistro(pacote);
-                break;
-            case LOGIN:
-                processarLogin(pacote);
-                break;
-            case LOGOUT:
-                logout();
-                break;
-            default:
-                System.out.println("Pacote desconhecido: " + pacote.getType());
+            case REGISTER: processarRegistro(pacote); break;
+            case LOGIN: processarLogin(pacote); break;
+            case LOGOUT: logout(); break;
+            case MESSAGE: processarMensagem(pacote); break;
+            default: break;
         }
     }
 
+    private void processarMensagem(Packet pacote) {
+        String destinatario = pacote.getReceiver();
+        if (Server.clientesOnline.containsKey(destinatario)) {
+            // Roteamento em Tempo Real
+            ClientHandler handlerDestino = Server.clientesOnline.get(destinatario);
+            handlerDestino.enviar(pacote);
+        } else {
+            // Salvar Offline
+            Message msgOffline = new Message(pacote.getSender(), destinatario, pacote.getContent());
+            messageRepository.salvarOffline(msgOffline);
+        }
+    }
+
+    // ... (Mantenha seus métodos processarRegistro e processarLogin EXATAMENTE como estavam)
     private void processarRegistro(Packet pacote) {
         User novoUser = new User(pacote.getSender(), pacote.getSender(), "", pacote.getContent());
-        boolean sucesso = authService.registrar(novoUser);
-        if (sucesso) {
+        if (authService.registrar(novoUser)) {
             enviar(new Packet(PacketType.REGISTER_OK));
         } else {
             enviar(new Packet(PacketType.REGISTER_FAIL));
@@ -93,7 +97,6 @@ public class ClientHandler implements Runnable {
         if (user != null) {
             nickNameCliente = pacote.getSender();
             Server.clientesOnline.put(nickNameCliente, this);
-            System.out.println(nickNameCliente + " está online.");
             enviar(new Packet(PacketType.LOGIN_OK));
             presenceService.usuarioConectou(nickNameCliente, this);
         } else {
@@ -104,13 +107,5 @@ public class ClientHandler implements Runnable {
     public void enviar(Packet pacote) {
         String json = gson.toJson(pacote);
         saida.println(json);
-    }
-
-    public String getNickNameCliente() {
-        return nickNameCliente;
-    }
-
-    public void setNickNameCliente(String nickNameCliente) {
-        this.nickNameCliente = nickNameCliente;
     }
 }
