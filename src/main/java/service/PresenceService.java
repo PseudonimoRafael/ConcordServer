@@ -21,24 +21,22 @@ public class PresenceService {
     }
 
     public void usuarioConectou(String nickname, ClientHandler handler, MessageRepository messageRepository) {
-        notificarTodos(nickname, "online", handler);
-        entregarMensagensOffline(nickname, handler, messageRepository);
         enviarListaContatos(handler);
+        entregarMensagensOffline(nickname, handler, messageRepository);
+        notificarTodos(nickname, "online");
     }
 
     public void usuarioDesconectou(String nickname) {
-        notificarTodos(nickname, "offline", null);
+        notificarTodos(nickname, "offline");
     }
 
-    private void notificarTodos(String nickname, String status, ClientHandler excluir) {
+    private void notificarTodos(String nickname, String status) {
         Packet pacote = new Packet(PacketType.STATUS_UPDATE);
         pacote.setSender(nickname);
         pacote.setContent(status);
-
         for (ClientHandler handler : Server.clientesOnline.values()) {
-            if (handler != excluir) {
-                handler.enviar(pacote);
-            }
+            handler.enviar(pacote);
+            enviarListaContatos(handler);
         }
     }
 
