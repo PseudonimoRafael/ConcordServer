@@ -2,6 +2,9 @@ package service;
 //Essa classe vai autenticar, registrar e buscar usuarios cadastrados no servidor
 import models.User;
 import repository.UserRepository;
+// Pra a encriptacao usando o Argon2
+import com.password4j.Password;
+import com.password4j.Hash;
 public class AuthService {
     private UserRepository userRepository;
     public AuthService(UserRepository userRepository) {
@@ -13,6 +16,12 @@ public class AuthService {
             System.out.println("nickname indisponivel: " + user.getNickname());
             return false;
         }
+        String senha = user.getPassword();
+        Hash hash = Password.hash(senha)
+                .addRandomSalt()
+                .withArgon2();
+        String senhaEnc = hash.getResult(); 
+        user.setPassword(senhaEnc);
         return userRepository.salvar(user);
     }
     public User autenticar(String nickname, String senha) {
@@ -23,7 +32,7 @@ public class AuthService {
             return null;
         }
 
-        if (user.getPassword().equals(senha)) {
+        if (Password.check(senha, user.getPassword()).withArgon2()) {
             System.out.println("Usuário autenticado: " + nickname);
             return user;
         }
