@@ -1,5 +1,7 @@
 package handler;
 // Atende cada cliente em uma thread separada, processa pacotes de login, registro e logout em JSON
+import security.DHAbstraction;
+import security.DHFirstRequest;
 
 import com.google.gson.Gson;
 import models.Message;
@@ -20,16 +22,39 @@ public class ClientHandler implements Runnable {
     private BufferedReader entrada;
     private String nickNameCliente;
     private Gson gson = new Gson();
+    private DHAbstraction DH_key;
     
     private AuthService authService;
     private PresenceService presenceService;
     private MessageRepository messageRepository;
+    public DHFirstRequest dhreq;
+    public boolean keyRenoval;
+    
 
     public ClientHandler(Socket socket, AuthService authService, PresenceService presenceService, MessageRepository messageRepository) {
         this.socket = socket;
         this.authService = authService;
         this.presenceService = presenceService;
         this.messageRepository = messageRepository;
+
+        // Parte de criptografia
+        keyRenoval = true;
+        try {
+            DH_key = new DHAbstraction();
+            dhreq = new DHFirstRequest(DH_key);
+        }
+        catch (Exception e) {
+            }
+    }
+    public void keyNegociation(){
+        if (keyRenoval) {
+            try {
+                dhreq.makeRequest();
+            keyRenoval = false;
+            } catch (Exception e) {
+            // TODO
+            }
+        }
     }
 
     public void logout() {
@@ -40,7 +65,6 @@ public class ClientHandler implements Runnable {
         }
         try { socket.close(); } catch (IOException e) {}
     }
-
     @Override
     public void run() {
         try {
@@ -49,6 +73,7 @@ public class ClientHandler implements Runnable {
 
             String json;
             while ((json = entrada.readLine()) != null) {
+                keyNegociation();
                 Packet pacote = gson.fromJson(json, Packet.class);
                 processarPacote(pacote);
             }
@@ -65,6 +90,8 @@ public class ClientHandler implements Runnable {
             case LOGIN: processarLogin(pacote); break;
             case LOGOUT: logout(); break;
             case MESSAGE: processarMensagem(pacote); break;
+            case DH_SER_INIT: InicioDHServer(pacote); break;
+            case DH_SER_RESPONSE: RespostaDHServer(pacote); break;
             default: break;
         }
     }
@@ -104,8 +131,23 @@ public class ClientHandler implements Runnable {
         }
     }
 
+    private void InicioDHServer(Packet pacote) {
+    }
+    
+    private void RespostaDHServer(Packet pacote) {
+    }
     public void enviar(Packet pacote) {
         String json = gson.toJson(pacote);
         saida.println(json);
+        System.out.println(json); // Para observar os pacotes que são criados
+    }
+    
+
+    public DHAbstraction getDHChannel() {
+          return DH_key;
+    }
+
+    public void setDHChannel(DHAbstraction SecureChannel) {
+        this.DH_key = DH_key;
     }
 }

@@ -10,6 +10,9 @@ public enum PacketType{
     TYPING_START, TYPING_STOP,
     //digitando
     USER_NOT_FOUND, AUTH_ERROR, USER_ALREADY_EXISTS,
-    MESSAGE_BATCH
-
+    MESSAGE_BATCH,
+    
+    // OPCODES de negociacao de chaves
+    DH_SER_INIT, DH_SER_RESPONSE,
+    HKDF_SER_INIT, HKDF_SER_RESPONSE,
 }
